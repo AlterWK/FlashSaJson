@@ -2,9 +2,6 @@ import { exec } from 'child_process';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import path from 'path';
 
-// const filePath = 'F:\\dartou\\tie1\\assets\\images';
-const filePath = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\assets\\images\\effect';
-
 const execPath: string = 'F:\\MyGit\\SAJOSN\\SAJSON.exe';
 
 function multiplyParse(filePath: string) {
@@ -56,5 +53,8 @@ function copyFiles(currentFile: string) {
         }
     });
 }
+
+const filePath1 = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\assets\\images\\effect';
+const filePath = 'G:CocosProjects\\wxc\\test\\assets\\effect';
 
 multiplyParse(filePath);

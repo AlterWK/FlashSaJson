@@ -3,6 +3,8 @@ import path from 'path';
 import { Flash, Animation, MLabel, Element, ColorValue, MObjectVector, Position, Translate, ScaleValue } from './types';
 import { parse } from './unmatrix';
 
+let log: string = '';
+
 function initBaseInfo(animation: Animation, label: MLabel, flash: Flash) {
     animation.__type__ = 'cc.AnimationClip';
     animation._name = label.mLabelName;
@@ -61,23 +63,14 @@ function createOneScaleValue(translate: Translate) {
     return scale;
 }
 
-// !:这里只是查到了png的uuid，不适用于spriteFrame
-function searchUUIDByName(name: string) {
-    name = name.replace('.png', '');
-    return frameCache.get(name)[0].uuid || '';
-}
-
 interface Cache {
     uuid: string;
     path: string;
 }
 
-let frameCache = new Map<string, Cache[]>();
+const frameCache = new Map<string, Cache[]>();
 
 // !:此处查找creator中资源的uuid映射
-// const filePath = 'G:\\CocosProjects\\wxc\\test\\library\\imports';
-const filePath = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\library\\imports';
-
 function readeAllResources(filePath: string) {
     if (statSync(filePath).isDirectory()) {
         let names = readdirSync(filePath, { encoding: 'utf-8' });
@@ -114,21 +107,35 @@ function readeAllResources(filePath: string) {
     }
 }
 
+const filePath = 'G:\\CocosProjects\\wxc\\test\\library\\imports';
+const filePath1 = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\library\\imports';
+
 readeAllResources(filePath);
 
 console.log('load resources finish');
 
+let file: string = '';
 frameCache.forEach((caches, name) => {
     if (caches.length > 1) {
         console.warn('出现同名精灵帧，覆盖原有uuid，需要避免同名');
         console.warn('同名精灵帧：', name);
+        file += name + ':\n';
         caches.forEach((cache) => {
             console.warn(cache.path);
+            file += '"' + cache.path + '"' + '\n';
         });
+        file += '\n';
     }
 });
+writeFileSync(path.join(__dirname, '../log', 'same.log'), file);
 
-function initAnimationInfo(animation: Animation, label: MLabel, flash: Flash) {
+// !:这里只是查到了png的uuid，不适用于spriteFrame
+function searchUUIDByName(name: string) {
+    name = name.replace('.png', '');
+    return frameCache.get(name)[0].uuid || '';
+}
+
+function initAnimationInfo(animation: Animation, label: MLabel, flash: Flash, destDir: string) {
     animation.curveData = { paths: {} };
     let paths = animation.curveData.paths;
     let frames = flash.mFrames.splice(label.mStartFrameNum, label.mEndFrameNum);
@@ -163,6 +170,7 @@ function initAnimationInfo(animation: Animation, label: MLabel, flash: Flash) {
         }
     });
     console.log(animation._name, ',maxObjIdx: ', maxObjIdx);
+    log += '"' + destDir + '"' + ':' + animation._name + ': ' + maxObjIdx + '\n';
 }
 
 function writeToFile(animation: Animation, destDir: string) {
@@ -178,12 +186,12 @@ function convertFlashToAnimation(flash: Flash, destDir: string) {
     }
     for (let image of flash.mImageVector) {
         let translate: Translate = queryAnimationObject(image.mTransform.mMatrix.m);
-        console.log('image info: ', JSON.stringify(translate), flash.mImageVector.length);
+        // console.log('image info: ', JSON.stringify(translate), flash.mImageVector.length);
     }
     for (let label of flash.mLabels) {
         let animation = new Animation();
         initBaseInfo(animation, label, flash);
-        initAnimationInfo(animation, label, flash);
+        initAnimationInfo(animation, label, flash, destDir);
         writeToFile(animation, destDir);
     }
     console.log('convert success');
@@ -212,7 +220,7 @@ function multiplyConvert(filePath: string) {
     }
 }
 
-// let inputPath = 'F:\\MyGit\\SAJOSN\\middle\\images\\effect';
-let inputFile: string = './middle/chutou.json';
-let inputPath = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\assets\\images\\effect';
-multiplyConvert(inputFile);
+let inputPath = 'G:CocosProjects\\wxc\\test\\assets\\effect';
+let inputPath1 = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\assets\\images\\effect';
+multiplyConvert(inputPath);
+writeFileSync(path.join(__dirname, '../log', 'node.log'), log);
