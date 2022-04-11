@@ -201,7 +201,9 @@ int main(int argc, char *argv[])
     }
 
     std::ofstream outfile;
-    outfile.open("./middle/output.json");
+    std::string input(argv[1]);
+    input.replace(input.find(".sam"), 5, ".json");
+    outfile.open(input);
 
     SuperAnim::SuperAnimMainDef *p = SuperAnim::SuperAnimDefMgr::GetInstance()->Load_GetSuperAnimMainDef(argv[1]);
 

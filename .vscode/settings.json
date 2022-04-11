@@ -4,5 +4,8 @@
     "debug.javascript.autoAttachFilter": "smart",
     "debug.console.historySuggestions": true,
     "debug.javascript.codelens.npmScripts": "all",
-    "editor.snippetSuggestions": "bottom"
+    "editor.snippetSuggestions": "bottom",
+    "files.associations": {
+        "xstring": "cpp"
+    }
 }

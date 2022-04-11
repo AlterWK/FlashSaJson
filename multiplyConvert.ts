@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'fs';
-import path, { dirname } from 'path';
+import path from 'path';
 import { Flash, Animation, MLabel, Element, ColorValue, MObjectVector, Position, Translate, ScaleValue } from './types';
 import { parse } from './unmatrix';
 
@@ -55,25 +55,15 @@ function createOnePositionValue(translate: Translate) {
 function createOneScaleValue(translate: Translate) {
     let scale: ScaleValue = {
         __type__: 'cc.Vec2',
-        x: translate.scaleX,
-        y: translate.scaleY,
+        x: -translate.scaleX,
+        y: -translate.scaleY,
     };
     return scale;
 }
 
-const constract: { [index: string]: { asset: string; meta: string; relativePath: string } } = JSON.parse(
-    readFileSync('G:\\CocosProjects\\wxc\\test\\library\\uuid-to-mtime.json', { encoding: 'utf8' })
-);
-
 // !:这里只是查到了png的uuid，不适用于spriteFrame
 function searchUUIDByName(name: string) {
     name = name.replace('.png', '');
-    // let keys = Object.keys(constract);
-    // for (let key of keys) {
-    //     if (constract[key].relativePath.search(name) >= 0) {
-    //         return key;
-    //     }
-    // }
     return frameCache.get(name)[0].uuid || '';
 }
 
@@ -84,7 +74,9 @@ interface Cache {
 
 let frameCache = new Map<string, Cache[]>();
 
-const filePath = 'G:\\CocosProjects\\wxc\\test\\library\\imports';
+// !:此处查找creator中资源的uuid映射
+// const filePath = 'G:\\CocosProjects\\wxc\\test\\library\\imports';
+const filePath = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\library\\imports';
 
 function readeAllResources(filePath: string) {
     if (statSync(filePath).isDirectory()) {
@@ -98,7 +90,7 @@ function readeAllResources(filePath: string) {
                     let file = readFileSync(currentFile, { encoding: 'utf-8' });
                     let object = JSON.parse(file);
                     // 查找不属于精灵表中的精灵帧
-                    if (object['__type__'] == 'cc.SpriteFrame' && object['content'] && !object['content']['atlas']) {
+                    if (object['__type__'] == 'cc.SpriteFrame' && object['content'] /* && !object['content']['atlas'] */) {
                         let frameName = object['content']['name'];
                         if (!frameCache.has(frameName)) {
                             frameCache.set(frameName, []);
@@ -165,7 +157,6 @@ function initAnimationInfo(animation: Animation, label: MLabel, flash: Flash) {
             paths[objectName].comps['cc.Sprite'].spriteFrame.push({
                 frame: frameTime,
                 value: {
-                    // todo:这里需要替换为cocos creator中对应的uuid
                     __uuid__: searchUUIDByName(spriteName),
                 },
             });
@@ -174,24 +165,54 @@ function initAnimationInfo(animation: Animation, label: MLabel, flash: Flash) {
     console.log(animation._name, ',maxObjIdx: ', maxObjIdx);
 }
 
-function writeToFile(animation: Animation) {
+function writeToFile(animation: Animation, destDir: string) {
     let output = JSON.stringify(animation, null, 2);
-    let fileName: string = path.join(__dirname, '../output', animation._name + '.anim');
+    let fileName: string = path.join(destDir, animation._name + '.anim');
     writeFileSync(fileName, output);
 }
 
-function convertFlashToAnimation(flash: Flash) {
+function convertFlashToAnimation(flash: Flash, destDir: string) {
+    if (!flash.mImageVector || !flash.mImageVector.length) {
+        console.error('parse error, isn`t sam file');
+        return;
+    }
+    for (let image of flash.mImageVector) {
+        let translate: Translate = queryAnimationObject(image.mTransform.mMatrix.m);
+        console.log('image info: ', JSON.stringify(translate), flash.mImageVector.length);
+    }
     for (let label of flash.mLabels) {
         let animation = new Animation();
         initBaseInfo(animation, label, flash);
         initAnimationInfo(animation, label, flash);
-        writeToFile(animation);
+        writeToFile(animation, destDir);
     }
     console.log('convert success');
 }
 
-console.log(Number((1 / 60).toFixed(17)));
+function convertOneFile(filePath: string) {
+    if (/\.json/.test(path.extname(filePath))) {
+        let input = JSON.parse(readFileSync(filePath, { encoding: 'utf-8' }));
+        convertFlashToAnimation(input, path.dirname(filePath));
+    }
+}
 
-let inputFile: string = './middle/output.json';
-let input = JSON.parse(readFileSync(inputFile, { encoding: 'utf-8' }));
-convertFlashToAnimation(input);
+function multiplyConvert(filePath: string) {
+    if (statSync(filePath).isDirectory()) {
+        let names = readdirSync(filePath);
+        for (let name of names) {
+            let currentFile = path.join(filePath, name);
+            if (statSync(currentFile).isDirectory()) {
+                multiplyConvert(currentFile);
+            } else {
+                convertOneFile(currentFile);
+            }
+        }
+    } else {
+        convertOneFile(filePath);
+    }
+}
+
+// let inputPath = 'F:\\MyGit\\SAJOSN\\middle\\images\\effect';
+let inputFile: string = './middle/chutou.json';
+let inputPath = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\assets\\images\\effect';
+multiplyConvert(inputFile);
