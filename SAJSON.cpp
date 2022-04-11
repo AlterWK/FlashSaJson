@@ -201,28 +201,26 @@ int main(int argc, char *argv[])
     }
 
     std::ofstream outfile;
-    outfile.open("./output.js");
+    outfile.open("./middle/output.json");
 
     SuperAnim::SuperAnimMainDef *p = SuperAnim::SuperAnimDefMgr::GetInstance()->Load_GetSuperAnimMainDef(argv[1]);
 
-    outfile << format("const out = ").c_str();
-
     outfile << format("{").c_str();
 
-    outfile << format("mAnimRate:%d,", p->mAnimRate).c_str();
-    outfile << format("mX:%d,", p->mX).c_str();
-    outfile << format("mY:%d,", p->mY).c_str();
-    outfile << format("mWidth:%d,", p->mWidth).c_str();
-    outfile << format("mHeight:%d,", p->mHeight).c_str();
+    outfile << format("\"mAnimRate\":%d,", p->mAnimRate).c_str();
+    outfile << format("\"mX\":%d,", p->mX).c_str();
+    outfile << format("\"mY\":%d,", p->mY).c_str();
+    outfile << format("\"mWidth\":%d,", p->mWidth).c_str();
+    outfile << format("\"mHeight\":%d,", p->mHeight).c_str();
 
-    outfile << format("mImageVector:[").c_str();
+    outfile << format("\"mImageVector\":[").c_str();
     for (SuperAnim::SuperAnimImageVector::const_iterator i = p->mImageVector.begin(); i != p->mImageVector.end(); ++i)
     {
         outfile << format("{").c_str();
-        outfile << format("mImageName:'%s',", i->mImageName.c_str()).c_str();
-        outfile << format("mWidth:%d,", i->mWidth).c_str();
-        outfile << format("mHeight:%d,", i->mHeight).c_str();
-        outfile << format("mTransform:{mMatrix:{m:[[%f,%f,%f],[%f,%f,%f],[%f,%f,%f]]}},",
+        outfile << format("\"mImageName\":\"%s\",", i->mImageName.c_str()).c_str();
+        outfile << format("\"mWidth\":%d,", i->mWidth).c_str();
+        outfile << format("\"mHeight\":%d,", i->mHeight).c_str();
+        outfile << format("\"mTransform\":{\"mMatrix\":{\"m\":[[%f,%f,%f],[%f,%f,%f],[%f,%f,%f]]}}}",
                           i->mTransform.mMatrix.m[0][0],
                           i->mTransform.mMatrix.m[0][1],
                           i->mTransform.mMatrix.m[0][2],
@@ -233,20 +231,20 @@ int main(int argc, char *argv[])
                           i->mTransform.mMatrix.m[2][1],
                           i->mTransform.mMatrix.m[2][2])
                        .c_str();
-        outfile << format("},").c_str();
+        (i + 1 != p->mImageVector.end()) && (outfile << format(",").c_str());
     }
     outfile << format("],").c_str();
 
-    outfile << format("mStartFrameNum:%d,", p->mStartFrameNum).c_str();
-    outfile << format("mEndFrameNum:%d,", p->mEndFrameNum).c_str();
+    outfile << format("\"mStartFrameNum\":%d,", p->mStartFrameNum).c_str();
+    outfile << format("\"mEndFrameNum\":%d,", p->mEndFrameNum).c_str();
 
-    outfile << format("mFrames:[").c_str();
+    outfile << format("\"mFrames\":[").c_str();
     for (SuperAnim::SuperAnimFrameVector::const_iterator i = p->mFrames.begin(); i != p->mFrames.end(); ++i)
     {
-        outfile << format("{ mObjectVector:[").c_str();
+        outfile << format("{ \"mObjectVector\":[").c_str();
         for (SuperAnim::SuperAnimObjectVector::const_iterator j = i->mObjectVector.begin(); j != i->mObjectVector.end(); ++j)
         {
-            outfile << format("{mObjectNum:%d,mResNum:%d,mTransform:{mMatrix:{m:[[%f,%f,%f],[%f,%f,%f],[%f,%f,%f]]}},mColor:{mRed:%d,mGreen:%d,mBlue:%d,mAlpha:%d}},",
+            outfile << format("{\"mObjectNum\":%d,\"mResNum\":%d,\"mTransform\":{\"mMatrix\":{\"m\":[[%f,%f,%f],[%f,%f,%f],[%f,%f,%f]]}},\"mColor\":{\"mRed\":%d,\"mGreen\":%d,\"mBlue\":%d,\"mAlpha\":%d}}",
                               j->mObjectNum,
                               j->mResNum,
                               j->mTransform.mMatrix.m[0][0],
@@ -263,22 +261,24 @@ int main(int argc, char *argv[])
                               j->mColor.mBlue,
                               j->mColor.mAlpha)
                            .c_str();
+            (j + 1 != i->mObjectVector.end()) && (outfile << format(",").c_str());
         }
-        outfile << format("]},").c_str();
+        (i + 1 == p->mFrames.end()) ? (outfile << format("]}").c_str()) : (outfile << format("]},").c_str());
     }
     outfile << format("],").c_str();
 
-    outfile << format("mLabels:[").c_str();
+    outfile << format("\"mLabels\":[").c_str();
     for (SuperAnim::SuperAnimLabelArray::const_iterator i = p->mLabels.begin(); i != p->mLabels.end(); ++i)
     {
 
-        outfile << format("{mLabelName:'%s',mStartFrameNum:%d,mEndFrameNum:%d},",
+        outfile << format("{\"mLabelName\":\"%s\",\"mStartFrameNum\":%d,\"mEndFrameNum\":%d}",
                           i->mLabelName.c_str(),
                           i->mStartFrameNum,
                           i->mEndFrameNum)
                        .c_str();
+        (i + 1 != p->mLabels.end()) && (outfile << format(",").c_str());
     }
-    outfile << format("],").c_str();
+    outfile << format("]").c_str();
 
     outfile << format("}").c_str();
 

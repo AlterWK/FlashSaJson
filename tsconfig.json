@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "lib": [
+      "DOM",
+      "ES2015.Promise",
+      "es2017"
+    ],
+    "allowJs": true,
+    "sourceMap": true,
+    "outDir": "./temp",
+    "declaration": true,
+    "downlevelIteration": true,
+    "strict": false,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "exclude": [
+    "temp",
+    "namespace",
+    "output"
+  ],
+}

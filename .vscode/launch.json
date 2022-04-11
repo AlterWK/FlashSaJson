@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "启动程序",
+            "program": "${file}",
+            "preLaunchTask": "tsc",
+            "outFiles": [
+                "${workspaceFolder}/temp/*.js"
+            ],
+        }
+    ]
+}

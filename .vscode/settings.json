@@ -1,0 +1,8 @@
+{
+    "debug.javascript.autoExpandGetters": true,
+    "debug.javascript.debugByLinkOptions": "on",
+    "debug.javascript.autoAttachFilter": "smart",
+    "debug.console.historySuggestions": true,
+    "debug.javascript.codelens.npmScripts": "all",
+    "editor.snippetSuggestions": "bottom"
+}
