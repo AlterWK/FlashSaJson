@@ -247,6 +247,8 @@ function querySameRange<T>(array: T[], predicate: (a: T, b: T) => boolean, range
             let second = array[j];
             if (predicate(first, second)) {
                 ednIdx = j;
+            } else {
+                break;
             }
         }
         if (ednIdx > startIdx) {
@@ -325,5 +327,6 @@ function multiplyConvert(filePath: string) {
 let inputPath = 'G:CocosProjects\\wxc\\test\\assets\\effect';
 let inputPath1 = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\assets\\images\\effect';
 let inputPath2 = 'G:CocosProjects\\wxc\\test\\assets\\effect\\chutou\\chutou.json';
+let inputPath3 = 'F:\\MyGit\\SAJOSN\\middle\\images\\effect\\button_flame\\button_flame.json';
 multiplyConvert(inputPath1);
 writeFileSync(path.join(__dirname, '../log', 'node.log'), log);

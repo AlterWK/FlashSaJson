@@ -28,7 +28,7 @@ function parseOneFile(filePath: string) {
                 console.log(error);
             } else {
                 // 复制当前目录下的文件
-                copyFiles(filePath);
+                // copyFiles(filePath);
             }
         });
     }
