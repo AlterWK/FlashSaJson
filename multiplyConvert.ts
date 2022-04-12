@@ -110,7 +110,7 @@ function readeAllResources(filePath: string) {
 const filePath = 'G:\\CocosProjects\\wxc\\test\\library\\imports';
 const filePath1 = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\library\\imports';
 
-readeAllResources(filePath);
+readeAllResources(filePath1);
 
 console.log('load resources finish');
 
@@ -150,6 +150,9 @@ function initAnimationInfo(animation: Animation, label: MLabel, flash: Flash, de
             if (!paths[objectName]) {
                 paths[objectName] = createOneElement();
             }
+            if (paths[objectName].props.opacity.length < index && paths[objectName].props.opacity.length == 0) {
+                paths[objectName].props.opacity.push({ frame: 0, value: 0, curve: 'constant' });
+            }
             let frameTime: number = Number((index * (1 / flash.mAnimRate)).toFixed(17));
             let translate: Translate = queryAnimationObject(object.mTransform.mMatrix.m);
             let color = createOneColorValue(object);
@@ -169,8 +172,107 @@ function initAnimationInfo(animation: Animation, label: MLabel, flash: Flash, de
             });
         }
     });
+    eliminateSuperfluousFrames(animation);
     console.log(animation._name, ',maxObjIdx: ', maxObjIdx);
     log += '"' + destDir + '"' + ':' + animation._name + ': ' + maxObjIdx + '\n';
+}
+
+function eliminateSuperfluousFrames(animation: Animation) {
+    for (let key in animation.curveData.paths) {
+        let element: Element = animation.curveData.paths[key];
+        let scaleRange: number[] = [];
+        let angleRange: number[] = [];
+        let opacityRange: number[] = [];
+        let colorRange: number[] = [];
+        let positionRange: number[] = [];
+        let frameRange: number[] = [];
+        querySameRange(
+            element.props.scale,
+            (a, b) => {
+                return a.value.x == b.value.x && a.value.y == b.value.y;
+            },
+            scaleRange
+        );
+        querySameRange(
+            element.props.angle,
+            (a, b) => {
+                return a.value == b.value;
+            },
+            angleRange
+        );
+        querySameRange(
+            element.props.opacity,
+            (a, b) => {
+                return a.value == b.value;
+            },
+            opacityRange
+        );
+        querySameRange(
+            element.props.color,
+            (a, b) => {
+                return a.value.r == b.value.r && a.value.g == b.value.g && a.value.b == b.value.b;
+            },
+            colorRange
+        );
+        querySameRange(
+            element.props.position,
+            (a, b) => {
+                return a.value[0] == b.value[0] && a.value[1] == b.value[1];
+            },
+            positionRange
+        );
+        querySameRange(
+            element.comps['cc.Sprite'].spriteFrame,
+            (a, b) => {
+                return a.value.__uuid__ == b.value.__uuid__;
+            },
+            frameRange
+        );
+        mergeSameFrames(element.props.scale, scaleRange);
+        mergeSameFrames(element.props.angle, angleRange);
+        mergeSameFrames(element.props.opacity, opacityRange);
+        mergeSameFrames(element.props.color, colorRange);
+        mergeSameFrames(element.props.position, positionRange);
+        mergeSameFrames(element.comps['cc.Sprite'].spriteFrame, frameRange);
+    }
+}
+
+function querySameRange<T>(array: T[], predicate: (a: T, b: T) => boolean, ranges: number[], startIdx?: number, ednIdx?: number) {
+    startIdx = startIdx ?? 0;
+    ednIdx = ednIdx ?? 0;
+    for (let i = startIdx; i < array.length; ++i) {
+        let first = array[i];
+        startIdx = i;
+        for (let j = i + 1; j < array.length; ++j) {
+            let second = array[j];
+            if (predicate(first, second)) {
+                ednIdx = j;
+            }
+        }
+        if (ednIdx > startIdx) {
+            ranges.push(startIdx, ednIdx);
+            querySameRange(array, predicate, ranges, ednIdx + 1, ednIdx);
+            break;
+        }
+    }
+}
+
+function mergeSameFrames<T>(array: { curve?: string }[], ranges: number[]) {
+    if (ranges.length == 0) {
+        return;
+    }
+    if (ranges.length % 2 != 0) {
+        console.error('invalid params');
+        return;
+    }
+    let delCount: number = 0;
+    for (let i = 0; i < ranges.length; i += 2) {
+        let startIdx = ranges[i] - delCount;
+        let ednIdx = ranges[i + 1] - delCount;
+        array[startIdx].curve = 'constant';
+        delCount = delCount + ednIdx - startIdx - 1;
+        array.splice(startIdx + 1, ednIdx - startIdx - 1);
+    }
 }
 
 function writeToFile(animation: Animation, destDir: string) {
@@ -184,10 +286,10 @@ function convertFlashToAnimation(flash: Flash, destDir: string) {
         console.error('parse error, isn`t sam file');
         return;
     }
-    for (let image of flash.mImageVector) {
+    /* for (let image of flash.mImageVector) {
         let translate: Translate = queryAnimationObject(image.mTransform.mMatrix.m);
-        // console.log('image info: ', JSON.stringify(translate), flash.mImageVector.length);
-    }
+        console.log('image info: ', JSON.stringify(translate), flash.mImageVector.length);
+    } */
     for (let label of flash.mLabels) {
         let animation = new Animation();
         initBaseInfo(animation, label, flash);
@@ -222,5 +324,6 @@ function multiplyConvert(filePath: string) {
 
 let inputPath = 'G:CocosProjects\\wxc\\test\\assets\\effect';
 let inputPath1 = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\assets\\images\\effect';
-multiplyConvert(inputPath);
+let inputPath2 = 'G:CocosProjects\\wxc\\test\\assets\\effect\\chutou\\chutou.json';
+multiplyConvert(inputPath1);
 writeFileSync(path.join(__dirname, '../log', 'node.log'), log);

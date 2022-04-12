@@ -28,6 +28,7 @@ export interface CcSprite {
 export interface SpriteFrame {
     frame: number;
     value: SpriteFrameValue;
+    curve?: string;
 }
 
 export interface SpriteFrameValue {

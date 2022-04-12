@@ -57,4 +57,4 @@ function copyFiles(currentFile: string) {
 const filePath1 = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\assets\\images\\effect';
 const filePath = 'G:CocosProjects\\wxc\\test\\assets\\effect';
 
-multiplyParse(filePath);
+multiplyParse(filePath1);
