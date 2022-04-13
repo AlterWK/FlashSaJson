@@ -1,8 +1,9 @@
 import { exec } from 'child_process';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, realpathSync, statSync } from 'fs';
+import { platform } from 'os';
 import path from 'path';
 
-const execPath: string = 'F:\\MyGit\\SAJOSN\\SAJSON.exe';
+const execPath: string = path.join(__dirname, platform() == 'win32' ? 'SAJSON.exe' : 'SAJSON');
 
 function multiplyParse(filePath: string) {
     if (statSync(filePath).isDirectory()) {
@@ -54,7 +55,22 @@ function copyFiles(currentFile: string) {
     });
 }
 
-const filePath1 = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\assets\\images\\effect';
-const filePath = 'G:CocosProjects\\wxc\\test\\assets\\effect';
+let [_node, filePath, inputFile] = process.argv;
 
-multiplyParse(filePath1);
+function checkFile(filePath: string) {
+    if (!filePath) {
+        return false;
+    }
+    filePath = realpathSync(filePath);
+    return existsSync(filePath);
+}
+
+if (!checkFile(filePath)) {
+    throw '没找到正确的执行脚本';
+}
+
+if (!checkFile(inputFile)) {
+    throw '没找到正确的文件路径';
+}
+
+multiplyParse(inputFile);

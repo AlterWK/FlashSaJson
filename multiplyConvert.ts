@@ -1,6 +1,6 @@
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'fs';
 import path from 'path';
-import { Flash, Animation, MLabel, Element, ColorValue, MObjectVector, Position, Translate, ScaleValue } from './types';
+import { Flash, Animation, MLabel, Element, ColorValue, MObjectVector, Translate, ScaleValue } from './types';
 import { parse } from './unmatrix';
 
 let log: string = '';
@@ -106,28 +106,6 @@ function readeAllResources(filePath: string) {
         }
     }
 }
-
-const filePath = 'G:\\CocosProjects\\wxc\\test\\library\\imports';
-const filePath1 = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\library\\imports';
-
-readeAllResources(filePath1);
-
-console.log('load resources finish');
-
-let file: string = '';
-frameCache.forEach((caches, name) => {
-    if (caches.length > 1) {
-        console.warn('出现同名精灵帧，覆盖原有uuid，需要避免同名');
-        console.warn('同名精灵帧：', name);
-        file += name + ':\n';
-        caches.forEach((cache) => {
-            console.warn(cache.path);
-            file += '"' + cache.path + '"' + '\n';
-        });
-        file += '\n';
-    }
-});
-writeFileSync(path.join(__dirname, '../log', 'same.log'), file);
 
 // !:这里只是查到了png的uuid，不适用于spriteFrame
 function searchUUIDByName(name: string) {
@@ -324,9 +302,46 @@ function multiplyConvert(filePath: string) {
     }
 }
 
-let inputPath = 'G:CocosProjects\\wxc\\test\\assets\\effect';
-let inputPath1 = 'G:\\CocosProjects\\dartou\\creator_wulin_heroes\\assets\\images\\effect';
-let inputPath2 = 'G:CocosProjects\\wxc\\test\\assets\\effect\\chutou\\chutou.json';
-let inputPath3 = 'F:\\MyGit\\SAJOSN\\middle\\images\\effect\\button_flame\\button_flame.json';
-multiplyConvert(inputPath1);
+let [_node, filePath, constrastFile, inputFile] = process.argv;
+
+function checkFile(filePath: string) {
+    if (!filePath) {
+        return false;
+    }
+    filePath = realpathSync(filePath);
+    return existsSync(filePath);
+}
+
+if (!checkFile(filePath)) {
+    throw '没找到正确的执行脚本';
+}
+
+if (!checkFile(constrastFile)) {
+    throw '没找到正确的文件路径';
+}
+
+if (!checkFile(inputFile)) {
+    throw '没找到正确的文件路径';
+}
+
+readeAllResources(constrastFile);
+
+console.log('load resources finish');
+
+let file: string = '';
+frameCache.forEach((caches, name) => {
+    if (caches.length > 1) {
+        console.warn('出现同名精灵帧，覆盖原有uuid，需要避免同名');
+        console.warn('同名精灵帧：', name);
+        file += name + ':\n';
+        caches.forEach((cache) => {
+            console.warn(cache.path);
+            file += '"' + cache.path + '"' + '\n';
+        });
+        file += '\n';
+    }
+});
+writeFileSync(path.join(__dirname, '../log', 'same.log'), file);
+
+multiplyConvert(inputFile);
 writeFileSync(path.join(__dirname, '../log', 'node.log'), log);
