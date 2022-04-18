@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'fs';
 import path from 'path';
-import { Flash, Animation, MLabel, Element, ColorValue, MObjectVector, Translate, ScaleValue } from './types';
+import { SuperAnim } from './SuperAnim/SuperAnimCommon';
+import { Flash, Animation, MLabel, Element, ColorValue, MObjectVector, Translate, ScaleValue, Scale } from './types';
 import { parse } from './unmatrix';
 
 let log: string = '';
@@ -57,8 +58,8 @@ function createOnePositionValue(translate: Translate) {
 function createOneScaleValue(translate: Translate) {
     let scale: ScaleValue = {
         __type__: 'cc.Vec2',
-        x: -translate.scaleX,
-        y: -translate.scaleY,
+        x: translate.scaleX,
+        y: translate.scaleY,
     };
     return scale;
 }
@@ -107,20 +108,77 @@ function readeAllResources(filePath: string) {
     }
 }
 
-// !:这里只是查到了png的uuid，不适用于spriteFrame
 function searchUUIDByName(name: string) {
     name = name.replace('.png', '');
     return frameCache.get(name)[0].uuid || '';
 }
 
+function createOneTransform(transform) {
+    let ret = new SuperAnim.SuperAnimTransform();
+    ret.mMatrix.m = deepCopy(transform.mMatrix.m);
+    return ret;
+}
+
+function preExecuteMatrix(aMainDef: Flash, mCurFrameNum: number, sAnimObjIndex: number) {
+    let sAnimObjDrawnInfo = new SuperAnim.SuperAnimObjDrawInfo();
+    let aCurFrameNum = Math.floor(mCurFrameNum);
+    let aCurFrame = aMainDef.mFrames[aCurFrameNum];
+
+    let aCurObject = aCurFrame.mObjectVector[sAnimObjIndex];
+
+    let aSuperAnimImage = aMainDef.mImageVector[aCurObject.mResNum];
+
+    //!: 下面这个 if else 应该可以使用sAnimObjDrawnInfo.mTransform = createOneTransform(aCurObject.mTransform);替代
+    if (aCurFrameNum == aMainDef.mEndFrameNum) {
+        sAnimObjDrawnInfo.mTransform = createOneTransform(aCurObject.mTransform);
+        sAnimObjDrawnInfo.mColor = new SuperAnim.Color(aCurObject.mColor.mRed, aCurObject.mColor.mGreen, aCurObject.mColor.mBlue, aCurObject.mColor.mAlpha);
+    } else {
+        let aNextFrameNum = aCurFrameNum + 1;
+        let finishedInterp = false;
+        let aNextFrame = aMainDef.mFrames[aNextFrameNum];
+        for (let i = 0; i < aNextFrame.mObjectVector.length; ++i) {
+            let anObj = aNextFrame.mObjectVector[i];
+            if (anObj.mObjectNum == aCurObject.mObjectNum && anObj.mResNum == aCurObject.mResNum) {
+                let anInterp = mCurFrameNum - aCurFrameNum;
+                sAnimObjDrawnInfo.mTransform = createOneTransform(aCurObject.mTransform).InterpolateTo(anObj.mTransform, 0);
+                sAnimObjDrawnInfo.mColor = new SuperAnim.Color(aCurObject.mColor.mRed, aCurObject.mColor.mGreen, aCurObject.mColor.mBlue, aCurObject.mColor.mAlpha);
+                finishedInterp = true;
+                break;
+            }
+        }
+        if (!finishedInterp) {
+            sAnimObjDrawnInfo.mTransform = createOneTransform(aCurObject.mTransform);
+            sAnimObjDrawnInfo.mColor = new SuperAnim.Color(aCurObject.mColor.mRed, aCurObject.mColor.mGreen, aCurObject.mColor.mBlue, aCurObject.mColor.mAlpha);
+        }
+    }
+
+    sAnimObjDrawnInfo.mTransform = sAnimObjDrawnInfo.mTransform.TransformSrc(aSuperAnimImage.mTransform);
+    let aMatrix = new SuperAnim.SuperAnimMatrix3();
+    aMatrix.LoadIdentity();
+    aMatrix.m[0][2] = aSuperAnimImage.mWidth * 0.5;
+    aMatrix.m[1][2] = aSuperAnimImage.mHeight * 0.5;
+    sAnimObjDrawnInfo.mTransform.mMatrix = sAnimObjDrawnInfo.mTransform.mMatrix.op_ast(aMatrix);
+
+    const anAnimContentHeightInPixel = aMainDef.mHeight;
+
+    sAnimObjDrawnInfo.mTransform.mMatrix.m[1][2] = anAnimContentHeightInPixel - sAnimObjDrawnInfo.mTransform.mMatrix.m[1][2];
+
+    return sAnimObjDrawnInfo;
+}
+
+function deepCopy(obj: Object) {
+    return JSON.parse(JSON.stringify(obj));
+}
+
 function initAnimationInfo(animation: Animation, label: MLabel, flash: Flash, destDir: string) {
     animation.curveData = { paths: {} };
     let paths = animation.curveData.paths;
-    let frames = flash.mFrames.splice(label.mStartFrameNum, label.mEndFrameNum);
+    let temp = deepCopy(flash);
+    let frames = flash.mFrames.splice(label.mStartFrameNum, label.mEndFrameNum + 1);
     let maxObjIdx: number = 0;
     frames.forEach((frame, index) => {
         let objects = frame.mObjectVector;
-        for (let object of objects) {
+        objects.forEach((object, idx) => {
             let objectName = object.mObjectNum;
             if (objectName > maxObjIdx) {
                 maxObjIdx = objectName;
@@ -132,11 +190,12 @@ function initAnimationInfo(animation: Animation, label: MLabel, flash: Flash, de
                 paths[objectName].props.opacity.push({ frame: 0, value: 0, curve: 'constant' });
             }
             let frameTime: number = Number((index * (1 / flash.mAnimRate)).toFixed(17));
-            let translate: Translate = queryAnimationObject(object.mTransform.mMatrix.m);
+            let matrix = preExecuteMatrix(temp, index, idx);
+            let translate: Translate = queryAnimationObject(matrix.mTransform.mMatrix.m);
             let color = createOneColorValue(object);
             let opacity = color.a;
             color.a = 255; //颜色的透明度不进行变化
-            paths[objectName].props.angle.push({ frame: frameTime, value: -translate.rotate });
+            paths[objectName].props.angle.push({ frame: frameTime, value: translate.rotate });
             paths[objectName].props.opacity.push({ frame: frameTime, value: opacity });
             paths[objectName].props.position.push({ frame: frameTime, value: createOnePositionValue(translate) });
             paths[objectName].props.color.push({ frame: frameTime, value: color });
@@ -148,7 +207,7 @@ function initAnimationInfo(animation: Animation, label: MLabel, flash: Flash, de
                     __uuid__: searchUUIDByName(spriteName),
                 },
             });
-        }
+        });
     });
     eliminateSuperfluousFrames(animation);
     console.log(animation._name, ',maxObjIdx: ', maxObjIdx);
@@ -261,7 +320,7 @@ function writeToFile(animation: Animation, destDir: string) {
     writeFileSync(fileName, output);
 }
 
-function convertFlashToAnimation(flash: Flash, destDir: string) {
+function convertFlashToAnimation(flash: Flash, destDir: string, isUpdateFile: boolean) {
     if (!flash.mImageVector || !flash.mImageVector.length) {
         console.error('parse error, isn`t sam file');
         return;
@@ -274,35 +333,37 @@ function convertFlashToAnimation(flash: Flash, destDir: string) {
         let animation = new Animation();
         initBaseInfo(animation, label, flash);
         initAnimationInfo(animation, label, flash, destDir);
-        writeToFile(animation, destDir);
+        if (isUpdateFile) {
+            writeToFile(animation, destDir);
+        }
     }
     console.log('convert success');
 }
 
-function convertOneFile(filePath: string) {
+function convertOneFile(filePath: string, isUpdateFile: boolean) {
     if (/\.json/.test(path.extname(filePath))) {
         let input = JSON.parse(readFileSync(filePath, { encoding: 'utf-8' }));
-        convertFlashToAnimation(input, path.dirname(filePath));
+        convertFlashToAnimation(input, path.dirname(filePath), isUpdateFile);
     }
 }
 
-function multiplyConvert(filePath: string) {
+function multiplyConvert(filePath: string, isUpdateFile: boolean = false) {
     if (statSync(filePath).isDirectory()) {
         let names = readdirSync(filePath);
         for (let name of names) {
             let currentFile = path.join(filePath, name);
             if (statSync(currentFile).isDirectory()) {
-                multiplyConvert(currentFile);
+                multiplyConvert(currentFile, isUpdateFile);
             } else {
-                convertOneFile(currentFile);
+                convertOneFile(currentFile, isUpdateFile);
             }
         }
     } else {
-        convertOneFile(filePath);
+        convertOneFile(filePath, isUpdateFile);
     }
 }
 
-let [_node, filePath, constrastFile, inputFile] = process.argv;
+let [_node, filePath, constrastFile, inputFile, isUpdateFile] = process.argv;
 
 function checkFile(filePath: string) {
     if (!filePath) {
@@ -341,7 +402,7 @@ frameCache.forEach((caches, name) => {
         file += '\n';
     }
 });
-writeFileSync(path.join(__dirname, '../log', 'same.log'), file);
+writeFileSync(path.join(__dirname, './log', 'same.log'), file);
 
-multiplyConvert(inputFile);
-writeFileSync(path.join(__dirname, '../log', 'node.log'), log);
+multiplyConvert(inputFile, Boolean(isUpdateFile || ''));
+writeFileSync(path.join(__dirname, './log', 'node.log'), log);
