@@ -11,7 +11,15 @@ function initBaseInfo(animation: Animation, label: MLabel, flash: Flash) {
     animation._name = label.mLabelName;
     animation._objFlags = 0;
     animation._native = '';
-    animation._duration = Number(((label.mEndFrameNum - label.mStartFrameNum + 1) * (1 / flash.mAnimRate)).toFixed(18));
+    // !:过滤空帧，计算动画有效帧
+    let frames = (deepCopy(flash) as Flash).mFrames.splice(label.mStartFrameNum, label.mEndFrameNum + 1);
+    let validFrameCount: number = 0;
+    frames.forEach((frame) => {
+        if (frame.mObjectVector.length > 0) {
+            validFrameCount++;
+        }
+    });
+    animation._duration = Number((validFrameCount * (1 / flash.mAnimRate)).toFixed(18));
     animation.sample = flash.mAnimRate;
     animation.speed = 1;
     animation.wrapMode = 1;
@@ -178,6 +186,7 @@ function initAnimationInfo(animation: Animation, label: MLabel, flash: Flash, de
     let maxObjIdx: number = 0;
     frames.forEach((frame, index) => {
         let objects = frame.mObjectVector;
+        let nextFrame = frames[index + 1];
         objects.forEach((object, idx) => {
             let objectName = object.mObjectNum;
             if (objectName > maxObjIdx) {
@@ -207,6 +216,20 @@ function initAnimationInfo(animation: Animation, label: MLabel, flash: Flash, de
                     __uuid__: searchUUIDByName(spriteName),
                 },
             });
+            if (nextFrame) {
+                let exist: boolean = false;
+                for (let i = 0; i < nextFrame.mObjectVector.length; ++i) {
+                    let obj = nextFrame.mObjectVector[i];
+                    if (object.mResNum == obj.mResNum && obj.mObjectNum == object.mObjectNum) {
+                        exist = true;
+                        break;
+                    }
+                }
+                // !:隐藏下帧不在出现的ui显示
+                if (!exist) {
+                    paths[objectName].props.opacity.push({ frame: frameTime + Number((1 / flash.mAnimRate).toFixed(17)), value: 0 });
+                }
+            }
         });
     });
     eliminateSuperfluousFrames(animation);

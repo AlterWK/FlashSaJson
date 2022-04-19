@@ -10,6 +10,11 @@
             "outFiles": [
                 "${workspaceFolder}/temp/*.js"
             ],
+            "args": [
+                "G:\\CocosProjects\\wxc\\test\\library\\imports",
+                "G:\\CocosProjects\\wxc\\test\\assets\\effect",
+                "True"
+            ]
         }
     ]
 }
